@@ -18,6 +18,34 @@ Budget about 45 minutes on a Pi 4, most of it the Mesa build.
 | Network | Internet on the Pi: the script downloads Hangover from its GitHub release page and Mesa from archive.mesa3d.org, and checks both against pinned SHA-256 sums. |
 | Game | The GOG **offline** installer: both `setup_medieval_total_war_gog_v1_(86311).exe` and `setup_medieval_total_war_gog_v1_(86311)-1.bin`, from `Game Files/GOG Offline installer/` on this PC. |
 | Account | A normal user with sudo (asked once, for apt). Any user name works. |
+| Other Wine | **Read [Already using Wine?](#already-using-wine) first** if this Pi runs other Windows programs. |
+
+## Already using Wine?
+
+By default the script installs Hangover's Wine as **the system Wine** (`/usr/bin/wine`). Its
+package declares a conflict with Debian's `wine` packages, so it would replace them. What that
+means for you:
+
+| What you have now | What happens |
+|---|---|
+| No Wine | Nothing to worry about. |
+| Wine from a tarball, e.g. Pi-Apps' "Wine (x86)" with Box86/Box64 (`wine` in `/usr/local/bin` or `~/wine`) | No clash. Your `wine` command and `~/.wine` stay as they are; the game calls Hangover by its full path and uses its own prefix in `~/mtw/prefixes`. (Hangover and Box64/Box86 Wine builds ran side by side on the development Pi.) |
+| A Wine **package** from apt (`wine`, `wine64`, `winehq-*`, …) or some other `/usr/bin/wine` | The script **stops before installing anything** and says so. Rerun with `--private-wine`. |
+
+`--private-wine` unpacks Hangover into `~/mtw/hangover` instead of installing it. Only the
+libraries it needs come from apt. Your Wine stays the system Wine, and only the game uses the
+private copy:
+
+```bash
+bash ~/pi-total-war/scripts/pi/setup-new-pi.sh --installer ~/gog --private-wine
+```
+
+This was tested on a Pi 4: the script ran through, and the game started to its menu in full
+screen with every Wine file loaded from `~/mtw/hangover`.
+
+If you would rather make Hangover your system Wine, remove your Wine package yourself first and
+run the script without the option. Hangover also runs x86 Windows programs, but your other
+programs have not been tested with it.
 
 ## Steps
 
@@ -74,7 +102,8 @@ What it does, in order (each step is skipped on a rerun once it has finished):
    that also runs a server). If you have checked the list and it is fine, rerun with
    `--allow-upgrades`.
 4. **Hangover 11.16**: downloads the official Debian 13 release, checks its SHA-256, installs
-   `hangover-wine`, `hangover-wowbox64`, `hangover-libarm64ecfex`.
+   `hangover-wine`, `hangover-wowbox64`, `hangover-libarm64ecfex` (with `--private-wine`:
+   unpacks them into `~/mtw/hangover` instead).
 5. **Game**: unpacks the installer natively with innoextract into `~/mtw/game-lazy` (no
    emulation, no Windows installer run). It warns if the installer is a different GOG build.
 6. **d3d9lazy shim**: compiles `tools/d3d9lazy/d3d9lazy.c` into `~/mtw/game-lazy/d3d9.dll`.
@@ -102,6 +131,21 @@ Double-click **Medieval Total War** on the desktop, or run:
   does not save them) and quit the game through its menu so the setting is kept.
 - Logs: `~/mtw/logs/play-*.log`.
 
+## What the setup changes outside `~/mtw`
+
+The game's own changes take effect only when the game runs. The patched Mesa, the d3d9lazy shim
+and the Wine settings are picked up through environment variables that `play.sh` sets for the
+game, plus the game's own Wine prefix. The desktop, the browser and other programs keep using the
+system Mesa. Outside `~/mtw` the script only adds:
+
+- apt packages (build tools, innoextract, xdotool, grim, tmux), installed only after a dry run
+  shows that nothing would be upgraded or removed;
+- Hangover as the system Wine (unless `--private-wine`);
+- the two shortcuts in `~/Desktop` and `~/.local/share/applications`.
+
+To remove the game, delete `~/mtw` and the two shortcuts. Uninstall the apt packages and Hangover
+with apt like any other package.
+
 ## Known limits
 
 - Full screen shows a white block in the left border in 4:3 menus (a Wine scaling leftover).
@@ -128,8 +172,9 @@ Untested. Two things to know:
 | "apt would upgrade or remove the packages above" | Nothing was installed. Look at the list; rerun with `--allow-upgrades` if those changes are fine on this Pi. |
 | Checksum mismatch | Delete the named file in `~/mtw/downloads` and rerun (usually a broken download). |
 | A step failed | Fix the cause and rerun the same command; finished steps are skipped. To redo a finished step, delete its marker in `~/mtw/.setup/` (`apt`, `hangover`, `game`, `shim`, `mesa`, `prefix`). |
-| Game window black 640x480 in `--window` mode | A full-screen run was killed hard and left a Wine setting behind. Run `WINEPREFIX=~/mtw/prefixes/hangover wine reg delete 'HKCU\Software\Wine\X11 Driver' /v EmulateModeset /f`. |
-| "The game is already running" | `WINEPREFIX=~/mtw/prefixes/hangover wineserver -k` |
+| Game window black 640x480 in `--window` mode | A full-screen run was killed hard and left a Wine setting behind. Run `WINEPREFIX=~/mtw/prefixes/hangover /usr/bin/wine reg delete 'HKCU\Software\Wine\X11 Driver' /v EmulateModeset /f`. |
+| "this Pi already has a Wine" | Nothing was installed. See [Already using Wine?](#already-using-wine); usually rerun with `--private-wine`. |
+| "The game is already running" | `WINEPREFIX=~/mtw/prefixes/hangover /usr/bin/wineserver -k` (with `--private-wine`: `~/mtw/hangover/usr/bin/wineserver -k`) |
 
 ## What is not in the repo
 

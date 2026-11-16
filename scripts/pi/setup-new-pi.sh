@@ -14,6 +14,9 @@
 #   --allow-upgrades  continue even if apt wants to upgrade or remove installed packages
 #                     (default: stop, so a Pi that also runs a server is not changed by surprise)
 #   --jobs N          parallel jobs for the Mesa build (default 3; a 4 GB Pi 4 is fine with 3)
+#   --private-wine    unpack Hangover into ~/mtw/hangover instead of installing it as the system
+#                     Wine. Use this if the Pi already has a Wine package for other programs: the
+#                     Hangover package would replace it. Only Hangover's libraries come from apt.
 #
 # Every step leaves a marker in ~/mtw/.setup/, so running the script again skips finished steps
 # and resumes after a failure. Delete a marker to redo that step. Nothing outside ~/mtw is
@@ -23,13 +26,15 @@ set -euo pipefail
 
 INSTALLER_DIR=""
 ALLOW_UPGRADES=0
+PRIVATE_WINE=0
 JOBS=3
 while [ $# -gt 0 ]; do
   case "$1" in
     --installer) INSTALLER_DIR="$2"; shift 2 ;;
     --allow-upgrades) ALLOW_UPGRADES=1; shift ;;
     --jobs) JOBS="$2"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    --private-wine) PRIVATE_WINE=1; shift ;;
+    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -91,6 +96,26 @@ grep -q "Raspberry Pi 4" /proc/device-tree/model 2>/dev/null ||
   echo "NOTE: this is not a Pi 4 ($(tr -d '\0' </proc/device-tree/model 2>/dev/null)). The setup was only ever tested on a Pi 4."
 echo "OK: $(tr -d '\0' </proc/device-tree/model 2>/dev/null), ${PRETTY_NAME}, ${FREE_GB} GB free"
 
+# Another Wine on this Pi? The hangover-wine package declares a conflict with Debian's wine
+# packages and takes over /usr/bin/wine, so installing it would remove or overwrite that Wine.
+if [ -f "$MARK/hangover.done" ] && [ -x "$MTW/hangover/usr/bin/wine" ]; then PRIVATE_WINE=1; fi
+other_wine="$(dpkg-query -W -f='${Package} ${Status}\n' 'wine' 'wine32' 'wine64' 'libwine' \
+  'wine-stable' 'wine-devel' 'wine-staging' 'winehq-*' 2>/dev/null | awk '/ installed$/{print $1}' | tr '\n' ' ' || true)"
+if [ -e /usr/bin/wine ] && ! dpkg -S /usr/bin/wine 2>/dev/null | grep -q '^hangover-wine:'; then
+  other_wine="$other_wine/usr/bin/wine (not from Hangover)"
+fi
+if [ -n "${other_wine// /}" ] && [ "$PRIVATE_WINE" != 1 ]; then
+  die "this Pi already has a Wine: $other_wine
+Installing Hangover as the system Wine would replace it. Either rerun with --private-wine
+(Hangover goes into $MTW/hangover and your Wine stays as it is), or remove that Wine yourself
+first if you want Hangover to become the system Wine."
+fi
+path_wine="$(command -v wine || true)"
+if [ -n "$path_wine" ] && [ "$path_wine" != /usr/bin/wine ]; then
+  echo "NOTE: 'wine' on your PATH is $path_wine. It stays your default 'wine'; the game always calls Hangover by its full path and uses its own prefix in $MTW/prefixes."
+fi
+[ "$PRIVATE_WINE" = 1 ] && echo "Hangover will be unpacked privately into $MTW/hangover (--private-wine)."
+
 if [ -z "$INSTALLER_DIR" ] && ! done_ game; then
   die "give the folder with the GOG installer: --installer DIR"
 fi
@@ -130,10 +155,27 @@ if ! done_ hangover; then
   echo "$HANGOVER_SHA  $HANGOVER_TAR" | sha256sum -c - || die "Hangover download checksum mismatch; delete $MTW/downloads/$HANGOVER_TAR and retry."
   mkdir -p "hangover-$HANGOVER_VER" && tar -xf "$HANGOVER_TAR" -C "hangover-$HANGOVER_VER"
   H="$MTW/downloads/hangover-$HANGOVER_VER"
-  apt_install "$H/hangover-wine_${HANGOVER_VER}~trixie_arm64.deb" \
-              "$H/hangover-libarm64ecfex_${HANGOVER_VER}_arm64.deb" \
-              "$H/hangover-wowbox64_${HANGOVER_VER}_arm64.deb"
-  wine --version
+  DEBS=("$H/hangover-wine_${HANGOVER_VER}~trixie_arm64.deb"
+        "$H/hangover-libarm64ecfex_${HANGOVER_VER}_arm64.deb"
+        "$H/hangover-wowbox64_${HANGOVER_VER}_arm64.deb")
+  if [ "$PRIVATE_WINE" = 1 ]; then
+    # Only the libraries Hangover's Wine links against come from apt (first choice of each
+    # alternative, version limits dropped); Wine itself is unpacked under ~/mtw.
+    # Libraries already present are left alone (so their apt state is not changed).
+    libs=()
+    for p in $(dpkg-deb -f "${DEBS[0]}" Depends | tr ',' '\n' |
+               sed 's/|.*//; s/(.*)//; s/ //g' | grep -v -e '^hangover-' -e '^$'); do
+      dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q ' installed$' || libs+=("$p")
+    done
+    if [ ${#libs[@]} -gt 0 ]; then apt_install "${libs[@]}"; else echo "Hangover's libraries are already installed."; fi
+    rm -rf "$MTW/hangover.partial"
+    for d in "${DEBS[@]}"; do dpkg-deb -x "$d" "$MTW/hangover.partial"; done
+    rm -rf "$MTW/hangover" && mv "$MTW/hangover.partial" "$MTW/hangover"
+    "$MTW/hangover/usr/bin/wine" --version
+  else
+    apt_install "${DEBS[@]}"
+    /usr/bin/wine --version
+  fi
   mark hangover
 else echo "already done"; fi
 
@@ -201,8 +243,9 @@ set +a
 export DISPLAY="${DISPLAY:-:0}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export WINEPREFIX WINEDEBUG=fixme-all
 if ! done_ prefix; then
-  WINEDLLOVERRIDES="mscoree=;mshtml=" wineboot -u || true
-  wineserver -w
+  echo "using $WINE_CMD"
+  WINEDLLOVERRIDES="mscoree=;mshtml=" $WINE_CMD wineboot -u || true
+  $WINESERVER_CMD -w
   [ -f "$WINEPREFIX/system.reg" ] || die "the Wine prefix was not created ($WINEPREFIX)."
   mark prefix
 else echo "already done"; fi

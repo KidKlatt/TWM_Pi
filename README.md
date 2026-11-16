@@ -21,6 +21,10 @@ tmux new -s setup
 bash ~/pi-total-war/scripts/pi/setup-new-pi.sh --installer ~/gog
 ```
 
+> **Already use Wine on this Pi for other programs?** The setup installs Hangover as the system
+> Wine, which replaces a Wine package from apt. The script detects this and stops; rerun it with
+> `--private-wine` to keep your Wine. Details: [Already using Wine?](docs/NEW-PI-SETUP.md#already-using-wine)
+
 About 45 minutes later, start the game from the **Medieval Total War** desktop shortcut. The full
 guide, including Pi 5 notes and troubleshooting, is [docs/NEW-PI-SETUP.md](docs/NEW-PI-SETUP.md).
 
