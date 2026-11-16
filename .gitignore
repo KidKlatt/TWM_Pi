@@ -1,0 +1,39 @@
+# Allow-list: the public repo holds only what a new Pi needs. Everything else in this folder
+# (the agents' working record, research scripts and profiles, game files, test results, the
+# Pi's login details) stays local. Add a line below to publish another file.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/THIRD-PARTY-NOTICES.md
+
+!/docs/
+/docs/*
+!/docs/NEW-PI-SETUP.md
+!/docs/HOW-IT-WAS-MADE.md
+
+!/scripts/
+/scripts/*
+!/scripts/pi/
+/scripts/pi/*
+!/scripts/pi/setup-new-pi.sh
+!/scripts/pi/play.sh
+
+!/config/
+/config/*
+!/config/pi4-lazy.env
+!/config/track-hangover.env
+!/config/profile-42-hangover-d3d9lazy-vram512.env
+!/config/profile-43-hangover-d3d9lazy-fullscreen.env
+!/config/desktop/
+
+!/tools/
+/tools/*
+!/tools/d3d9lazy/
+/tools/d3d9lazy/*
+!/tools/d3d9lazy/d3d9lazy.c
+
+!/patches/
+/patches/*
+!/patches/mesa-v3d-busy-range.patch
