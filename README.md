@@ -6,7 +6,7 @@ your own copy of the game**; this repo holds only the setup scripts, configurati
 Direct3D 9 helper DLL of our own, and a patch for the Pi's Mesa graphics driver. The game files are
 not modified.
 
-On a Pi 4 it runs full screen at about 17–25 FPS in battles (800x600).
+On a Pi 4 it runs full screen at about 17–25 FPS in battles (800x600).  This is surprisingly playable and smooth.
 
 ## Quick start
 
