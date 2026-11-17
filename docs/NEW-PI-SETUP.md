@@ -16,7 +16,7 @@ Budget about 45 minutes on a Pi 4, most of it the Mesa build.
 | Display | A monitor on HDMI and the desktop logged in. The game runs in the desktop session (labwc/Wayland with Xwayland, the Raspberry Pi OS default). |
 | Disk | 10 GB free in your home folder. |
 | Network | Internet on the Pi: the script downloads Hangover from its GitHub release page and Mesa from archive.mesa3d.org, and checks both against pinned SHA-256 sums. |
-| Game | The GOG **offline** installer: both `setup_medieval_total_war_gog_v1_(86311).exe` and `setup_medieval_total_war_gog_v1_(86311)-1.bin`, from `Game Files/GOG Offline installer/` on this PC. |
+| Game | Your own copy of Medieval: Total War from GOG, as the **offline backup installer**: **two files**, an `.exe` and a `.bin` (about 1.6 GB together). See [step 2](#2-put-the-gog-installer-on-the-pi). |
 | Account | A normal user with sudo (asked once, for apt). Any user name works. |
 | Other Wine | **Read [Already using Wine?](#already-using-wine) first** if this Pi runs other Windows programs. |
 
@@ -51,32 +51,40 @@ programs have not been tested with it.
 
 ### 1. Get the project onto the Pi
 
-**From GitHub** (recommended):
+In a terminal on the Pi:
 
 ```bash
 git clone https://github.com/KidKlatt/TWM_Pi ~/pi-total-war
 ```
 
-**Or copy it from this PC** (PowerShell, in this folder; replace `pi@newpi` with the new Pi's
-user and address):
+### 2. Put the GOG installer on the Pi
 
-```powershell
-ssh pi@newpi "mkdir -p ~/pi-total-war"
-scp -r scripts config tools patches pi@newpi:pi-total-war/
+The game is not in this repo; you need your own copy from GOG.
+
+1. Sign in at gog.com, open Medieval: Total War in your game library, and download the
+   **offline backup installer** for Windows (not the GOG Galaxy installer).
+2. It is **two files**, and the setup needs **both**:
+   - `setup_medieval_total_war_….exe`
+   - `setup_medieval_total_war_…-1.bin`
+
+   The tested version is `setup_medieval_total_war_gog_v1_(86311)`. A newer GOG build will
+   probably work too; the script warns but carries on.
+3. Put both files in a folder called `gog` in your home folder on the Pi (`/home/<you>/gog`).
+
+The easiest way is to download them on the Pi itself with its web browser; they land in
+`~/Downloads`. Then move them:
+
+```bash
+mkdir -p ~/gog
 ```
 
-Only `scripts`, `config`, `tools` and `patches` are needed.
-
-### 2. Copy the game installer
-
-The installer is 1.6 GB and is not in the repo. From this PC (PowerShell, in this folder):
-
-```powershell
-ssh pi@newpi "mkdir -p ~/gog"
-scp "Game Files/GOG Offline installer/setup_medieval_total_war_gog_v1_(86311).exe" "Game Files/GOG Offline installer/setup_medieval_total_war_gog_v1_(86311)-1.bin" pi@newpi:gog/
+```bash
+mv ~/Downloads/setup_medieval_total_war* ~/gog/
 ```
 
-A USB stick works too: put both files in one folder on the Pi.
+Downloaded them on another computer instead? Copy both files onto a USB stick, plug it into the
+Pi, and drag them into `~/gog` with the file manager. Any other folder works too, as long as both
+files are in the same one: give that folder to the script with `--installer` in the next step.
 
 ### 3. Run the setup script
 

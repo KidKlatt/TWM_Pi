@@ -3,14 +3,14 @@
 # working Pi 4 (Track A: Hangover 11.16 / WowBox64, the d3d9lazy shim, a private patched Mesa,
 # full screen through play.sh). Guide: docs/NEW-PI-SETUP.md.
 #
-# Run it ON THE PI, from a copy of this project (git clone or scp), inside tmux, because the
+# Run it ON THE PI, from a clone of this project, inside tmux, because the
 # Mesa build alone takes about 20 minutes on a Pi 4:
 #
 #   tmux new -s setup
 #   ~/pi-total-war/scripts/pi/setup-new-pi.sh --installer ~/gog
 #
-#   --installer DIR   folder holding the GOG offline installer: setup_medieval_total_war_*.exe
-#                     AND its .bin file (copy them from "Game Files/GOG Offline installer").
+#   --installer DIR   folder holding your GOG offline backup installer: setup_medieval_total_war_*.exe
+#                     AND its .bin file (both from your GOG library), e.g. ~/gog.
 #   --allow-upgrades  continue even if apt wants to upgrade or remove installed packages
 #                     (default: stop, so a Pi that also runs a server is not changed by surprise)
 #   --jobs N          parallel jobs for the Mesa build (default 3; a 4 GB Pi 4 is fine with 3)

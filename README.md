@@ -10,13 +10,17 @@ On a Pi 4 it runs full screen at about 17–25 FPS in battles (800x600).  This i
 
 ## Quick start
 
-Needs a Raspberry Pi 4 with 64-bit Raspberry Pi OS / Debian 13 "trixie" and its desktop, about
-10 GB free, and the GOG **offline** installer (`setup_medieval_total_war_gog_v1_(86311).exe` and
-its `.bin`).
+You need:
+- a Raspberry Pi 4 with 64-bit Raspberry Pi OS / Debian 13 "trixie" and its desktop;
+- about 10 GB free;
+- your own GOG copy of the game as the **offline backup installer**, which is **two files**: the
+  `setup_medieval_total_war_….exe` and its `….bin`. Download both from your GOG library.
+
+Put **both** installer files in a folder called `gog` in your home folder on the Pi (`~/gog`),
+then run:
 
 ```bash
 git clone https://github.com/KidKlatt/TWM_Pi ~/pi-total-war
-# copy both GOG installer files into ~/gog, then:
 tmux new -s setup
 bash ~/pi-total-war/scripts/pi/setup-new-pi.sh --installer ~/gog
 ```
