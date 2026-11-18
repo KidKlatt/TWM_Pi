@@ -162,6 +162,7 @@ with apt like any other package.
   game dips for a moment whenever they start. On that Pi this was eased by giving desktop
   sessions more CPU weight; it is a system change, so it is not in the script:
   `sudo systemctl set-property user.slice CPUWeight=1000` (undo: `sudo systemctl revert user.slice`).
+- In campaign, going from battle to campaign map shows the final battle on the edges if the campaign resolution is not a 16:9 resolution
 
 ## Pi 5
 
